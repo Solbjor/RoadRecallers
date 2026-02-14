@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import TopBar from "./components/TopBar";
 import ReportList from "./components/ReportList";
 import MapView from "./components/MapView";
 import AnalysisPanel from "./components/AnalysisPanel";
 import { seedReports } from "./utils/seedReports";
+import { reverseGeocode } from "./utils/geocoding";
 
 export default function App() {
   const [reports, setReports] = useState(seedReports);
@@ -66,6 +67,38 @@ export default function App() {
     setReports((prev) => [newReport, ...prev]);
     setSelectedId(newReport.id);
   }
+  useEffect(() => {
+  let cancelled = false;
+
+  async function enrichMissingGeo() {
+    // Only geocode reports that don't have geo yet
+    const missing = reports.filter(r => !r.geo);
+    if (missing.length === 0) return;
+
+    // IMPORTANT: keep requests low (sequential) to avoid rate limits
+    const updates = [];
+    for (const r of missing) {
+      try {
+        const parts = await reverseGeocode(r.lat, r.lng);
+        updates.push({ id: r.id, geo: parts });
+      } catch {
+        updates.push({ id: r.id, geo: { canton: "Unknown", province: "", road: "" } });
+      }
+      if (cancelled) return;
+    }
+
+    // Apply updates
+    setReports(prev =>
+      prev.map(r => {
+        const u = updates.find(x => x.id === r.id);
+        return u ? { ...r, geo: u.geo } : r;
+      })
+    );
+  }
+
+  enrichMissingGeo();
+  return () => { cancelled = true; };
+}, [reports]); // ok for small demo; for bigger, trigger on add/report changes only
 
   return (
     <div className="shell">
@@ -84,4 +117,5 @@ export default function App() {
       </div>
     </div>
   );
+  
 }

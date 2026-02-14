@@ -31,19 +31,16 @@ export function reportsPerDay(reports) {
     .map(([day, count]) => ({ day, count }));
 }
 
-// "Hotspots" without geocoding: group by coarse grid cell.
-// Later you can swap this to canton/province once reverse-geocoding is added.
-export function hotspotGridTop(reports, topN = 5) {
-  const cell = (lat, lng) => `${lat.toFixed(2)},${lng.toFixed(2)}`;
+export function hotspotCantonTop(reports, topN = 5) {
   const map = new Map();
 
   for (const r of reports) {
-    const key = cell(r.lat, r.lng);
-    map.set(key, (map.get(key) || 0) + 1);
+    const canton = r.geo?.canton?.trim() || "Unknown";
+    map.set(canton, (map.get(canton) || 0) + 1);
   }
 
   return Array.from(map.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, topN)
-    .map(([cellKey, count]) => ({ area: cellKey, count }));
+    .map(([canton, count]) => ({ canton, count }));
 }

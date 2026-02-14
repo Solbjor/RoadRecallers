@@ -1,12 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Tabs from "./Tabs";
 import { severityLabel } from "../utils/severity";
 import {
   severityBuckets,
   reportsPerDay,
-  hotspotGridTop,
+  hotspotCantonTop,
 } from "../analytics/aggregates";
-import { getLocationLabel } from "../utils/geocoding";
+import { formatCRLabel } from "../utils/geocoding";
 
 import {
   ResponsiveContainer,
@@ -20,64 +20,22 @@ import {
   Line,
 } from "recharts";
 
-const geoCache = new Map();
-
-function cacheKey(lat, lng) {
-  return `${lat.toFixed(5)},${lng.toFixed(5)}`;
-}
-
 export default function AnalysisPanel({ selected, reports }) {
   const [tab, setTab] = useState("report");
-  const [locationLabel, setLocationLabel] = useState("");
 
   const sevData = useMemo(() => severityBuckets(reports), [reports]);
   const perDay = useMemo(() => reportsPerDay(reports), [reports]);
-  const hotspots = useMemo(() => hotspotGridTop(reports, 5), [reports]);
+  const hotspots = useMemo(() => hotspotCantonTop(reports, 5), [reports]);
 
   const tabs = [
     { key: "report", label: "Report" },
     { key: "analytics", label: "Analytics" },
   ];
 
-  // Fetch location when selected report changes
-useEffect(() => {
-  if (!selected) return;
-
-  const key = cacheKey(selected.lat, selected.lng);
-
-  // If we already resolved this location before, use cached value
-  if (geoCache.has(key)) {
-    setLocationLabel(geoCache.get(key));
-    return;
-  }
-
-  let cancelled = false;
-  setLocationLabel("Resolving address (approx.)…");
-
-    getLocationLabel(selected.lat, selected.lng)
-      .then((label) => {
-        if (cancelled) return;
-
-        const safeLabel =
-          label && String(label).trim().length > 0
-            ? `${label} (approx.)`
-            : `lat ${selected.lat.toFixed(4)}, lng ${selected.lng.toFixed(4)}`;
-
-        geoCache.set(key, safeLabel);
-        setLocationLabel(safeLabel);
-      })
-      .catch(() => {
-        if (cancelled) return;
-
-        const fallback = `lat ${selected.lat.toFixed(4)}, lng ${selected.lng.toFixed(4)}`;
-        geoCache.set(key, fallback);
-        setLocationLabel(fallback);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selected?.id]);
+  // Generate location label from stored geo data
+  const locationLabel = selected?.geo
+    ? formatCRLabel(selected.geo, selected.lat, selected.lng)
+    : "Resolviendo dirección…";
 
 
 
@@ -195,16 +153,15 @@ useEffect(() => {
           </div>
 
           <div className="card">
-            <div className="k">Top hotspots (coarse grid)</div>
+            <div className="k">Top hotspots by canton</div>
             <div className="caption" style={{ marginTop: 6 }}>
-              For now this groups by rounded lat/lng. Once reverse geocoding is
-              added, replace this with top cantons/districts.
+              Grouped by canton from reverse geocoding data.
             </div>
 
             <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
               {hotspots.map((h) => (
                 <div
-                  key={h.area}
+                  key={h.canton}
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -214,7 +171,7 @@ useEffect(() => {
                     background: "rgba(255,255,255,0.03)",
                   }}
                 >
-                  <span className="mono">{h.area}</span>
+                  <span>{h.canton}</span>
                   <span className="mono">{h.count}</span>
                 </div>
               ))}
