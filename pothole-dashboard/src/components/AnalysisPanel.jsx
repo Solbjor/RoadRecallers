@@ -20,6 +20,12 @@ import {
   Line,
 } from "recharts";
 
+const geoCache = new Map();
+
+function cacheKey(lat, lng) {
+  return `${lat.toFixed(5)},${lng.toFixed(5)}`;
+}
+
 export default function AnalysisPanel({ selected, reports }) {
   const [tab, setTab] = useState("report");
   const [locationLabel, setLocationLabel] = useState("");
@@ -34,14 +40,46 @@ export default function AnalysisPanel({ selected, reports }) {
   ];
 
   // Fetch location when selected report changes
-  useEffect(() => {
-    if (selected) {
-      setLocationLabel("Loading...");
-      getLocationLabel(selected.lat, selected.lng)
-        .then((label) => setLocationLabel(label))
-        .catch(() => setLocationLabel(`${selected.lat}, ${selected.lng}`));
-    }
-  }, [selected]);
+useEffect(() => {
+  if (!selected) return;
+
+  const key = cacheKey(selected.lat, selected.lng);
+
+  // If we already resolved this location before, use cached value
+  if (geoCache.has(key)) {
+    setLocationLabel(geoCache.get(key));
+    return;
+  }
+
+  let cancelled = false;
+  setLocationLabel("Resolving address (approx.)…");
+
+    getLocationLabel(selected.lat, selected.lng)
+      .then((label) => {
+        if (cancelled) return;
+
+        const safeLabel =
+          label && String(label).trim().length > 0
+            ? `${label} (approx.)`
+            : `lat ${selected.lat.toFixed(4)}, lng ${selected.lng.toFixed(4)}`;
+
+        geoCache.set(key, safeLabel);
+        setLocationLabel(safeLabel);
+      })
+      .catch(() => {
+        if (cancelled) return;
+
+        const fallback = `lat ${selected.lat.toFixed(4)}, lng ${selected.lng.toFixed(4)}`;
+        geoCache.set(key, fallback);
+        setLocationLabel(fallback);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.id]);
+
+
 
   return (
     <aside className="panel analysis">
