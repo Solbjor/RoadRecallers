@@ -171,7 +171,7 @@ export default function CantonSummary({ canton, reports, onSelectReport, onClose
                 </div>
                 <div className="damage-report-title">{report.title}</div>
                 {report.geo?.road && (
-                  <div className="damage-report-street">📍 {report.geo.road}</div>
+                  <div className="damage-report-street">{report.geo.road}</div>
                 )}
                 <div className="damage-report-notes">{report.notes}</div>
               </div>

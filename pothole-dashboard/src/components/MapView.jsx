@@ -77,7 +77,7 @@ export default function MapView({ reports, onSelect }) {
     <main className="panel map">
       <div className="panel-head">
         <div className="panel-title">Map View</div>
-        <div className="panel-meta">Costa Rica (foundation)</div>
+        <div className="panel-meta">Costa Rica (Centered)</div>
       </div>
 
       {/* Map controls */}
@@ -94,13 +94,13 @@ export default function MapView({ reports, onSelect }) {
             className={`map-toggle-btn ${viewMode === 'markers' ? 'active' : ''}`}
             onClick={() => setViewMode('markers')}
           >
-            📍 Markers
+            Markers
           </button>
           <button
             className={`map-toggle-btn ${viewMode === 'heatmap' ? 'active' : ''}`}
             onClick={() => setViewMode('heatmap')}
           >
-            🔥 Heatmap
+            Heatmap
           </button>
         </div>
 
