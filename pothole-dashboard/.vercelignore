@@ -1,0 +1,8 @@
+backend/
+training/
+*.py
+*.pth
+__pycache__/
+*.pyc
+requirements.txt
+uploads/
