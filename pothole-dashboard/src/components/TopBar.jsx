@@ -4,7 +4,6 @@ export default function TopBar({ onAddSample }) {
   return (
     <header className="topbar">
       <div className="brand">
-        <div className="logo">CR</div>
         <div>
           <div className="title">MOPT Road Reports</div>
           <div className="subtitle">Pothole Detection • Agency Dashboard</div>
