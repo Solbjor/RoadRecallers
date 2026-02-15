@@ -1,4 +1,5 @@
 import React from "react";
+import { resolvePhotoUrl } from "../App";
 
 /**
  * Canton Summary Panel
@@ -212,7 +213,7 @@ export default function CantonSummary({ canton, reports, onSelectReport, onClose
                   key={report.id} 
                   className="photo-thumb"
                 >
-                  <img src={report.photoUrl} alt={report.title} />
+                  <img src={resolvePhotoUrl(report.photoUrl)} alt={report.title} />
                   <div className="photo-overlay">
                     <div className="photo-severity" style={{
                       background: report.severity >= 0.7 ? '#e74c3c' : 

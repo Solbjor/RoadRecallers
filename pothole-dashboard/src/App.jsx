@@ -7,6 +7,17 @@ import CantonSummary from "./components/CantonSummary";
 import { seedReports } from "./utils/seedReports";
 import { reverseGeocode } from "./utils/geocoding";
 
+// API configuration
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+
+// Photo URL resolver for backend-relative paths
+export function resolvePhotoUrl(photoUrl) {
+  if (!photoUrl) return "";
+  if (photoUrl.startsWith("http")) return photoUrl;
+  if (photoUrl.startsWith("/")) return `${API_BASE}${photoUrl}`;
+  return `${API_BASE}/${photoUrl}`;
+}
+
 export default function App() {
   const [reports, setReports] = useState(seedReports);
   const [selectedId, setSelectedId] = useState(seedReports[0]?.id);
@@ -111,6 +122,41 @@ export default function App() {
     setReports((prev) => [newReport, ...prev]);
     setSelectedId(newReport.id);
   }
+
+  // Poll backend for new WhatsApp reports
+  useEffect(() => {
+    let intervalId;
+
+    async function fetchReports() {
+      try {
+        const response = await fetch(`${API_BASE}/reports`);
+        if (!response.ok) return; // Silently fail if backend down
+        
+        const backendReports = await response.json();
+        
+        setReports((prev) => {
+          // Deduplicate by id
+          const existingIds = new Set(prev.map(r => r.id));
+          const newReports = backendReports.filter(r => !existingIds.has(r.id));
+          
+          // Prepend new reports (maintain order of existing)
+          return [...newReports, ...prev];
+        });
+      } catch (error) {
+        // Silently fail - backend may not be running yet
+        console.debug("Reports fetch failed:", error.message);
+      }
+    }
+
+    // Initial fetch
+    fetchReports();
+
+    // Poll every 3 seconds
+    intervalId = setInterval(fetchReports, 3000);
+
+    return () => clearInterval(intervalId);
+  }, []); // Empty deps - runs once on mount, cleans up on unmount
+
   useEffect(() => {
   let cancelled = false;
 
