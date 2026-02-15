@@ -130,7 +130,11 @@ export default function App() {
     async function fetchReports() {
       try {
         console.log('[POLL] Fetching from:', API_BASE);
-        const response = await fetch(`${API_BASE}/reports`);
+        const response = await fetch(`${API_BASE}/reports`, {
+          headers: {
+            'ngrok-skip-browser-warning': '69420'
+          }
+        });
         if (!response.ok) {
           console.log('[POLL] Response not OK:', response.status);
           return;
