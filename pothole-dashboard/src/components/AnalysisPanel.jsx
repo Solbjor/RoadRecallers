@@ -44,7 +44,7 @@ export default function AnalysisPanel({ selected, reports, selectedCanton, onSel
     <aside className="panel analysis">
       <div className="panel-head">
         <div className="panel-title">Analysis</div>
-        <div className="panel-meta">MOPT decision support</div>
+        <div className="panel-meta">Decision support</div>
       </div>
 
       <div style={{ padding: 10, borderBottom: "1px solid var(--border)" }}>
