@@ -129,22 +129,52 @@ export default function App() {
 
     async function fetchReports() {
       try {
+        console.log('[POLL] Fetching from:', API_BASE);
         const response = await fetch(`${API_BASE}/reports`);
-        if (!response.ok) return; // Silently fail if backend down
+        if (!response.ok) {
+          console.log('[POLL] Response not OK:', response.status);
+          return;
+        }
         
         const backendReports = await response.json();
+        console.log('[POLL] Backend reports received:', backendReports.length);
+        if (backendReports.length > 0) {
+          console.log('[POLL] First ID:', backendReports[0]?.id, 'Last ID:', backendReports[backendReports.length - 1]?.id);
+        }
         
         setReports((prev) => {
-          // Deduplicate by id
-          const existingIds = new Set(prev.map(r => r.id));
-          const newReports = backendReports.filter(r => !existingIds.has(r.id));
+          console.log('[POLL] Current reports before merge:', prev.length);
           
-          // Prepend new reports (maintain order of existing)
-          return [...newReports, ...prev];
+          // Create a map for deduplication (backend version wins)
+          const reportsMap = new Map();
+          
+          // Add all backend reports first (these are source of truth)
+          backendReports.forEach(r => reportsMap.set(r.id, r));
+          
+          // Add seed reports that aren't in backend (keep demo data)
+          prev.forEach(r => {
+            if (!reportsMap.has(r.id)) {
+              reportsMap.set(r.id, r);
+            }
+          });
+          
+          // Convert back to array
+          const merged = Array.from(reportsMap.values());
+          
+          // Sort by timestamp - newest first
+          merged.sort((a, b) => {
+            const timeA = new Date(a.createdAt || a.timestamp || 0).getTime();
+            const timeB = new Date(b.createdAt || b.timestamp || 0).getTime();
+            return timeB - timeA; // Descending order (newest first)
+          });
+          
+          console.log('[POLL] Merged reports:', merged.length, 'First ID:', merged[0]?.id);
+          
+          // Force new array reference to trigger React update
+          return [...merged];
         });
       } catch (error) {
-        // Silently fail - backend may not be running yet
-        console.debug("Reports fetch failed:", error.message);
+        console.debug('[POLL] Fetch error:', error.message);
       }
     }
 
@@ -172,6 +202,42 @@ export default function App() {
         const parts = await reverseGeocode(r.lat, r.lng);
         updates.push({ id: r.id, geo: parts });
       } catch {
+      {/* Debug Info & Filter Controls */}
+      <div style={{ 
+        padding: '8px 12px', 
+        background: '#f0f2f5', 
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        fontSize: '12px',
+        color: '#666'
+      }}>
+        <div>
+          Total Reports: {reports.length} | Showing: {filteredReports.length}
+          {selectedCanton && (
+            <span style={{ marginLeft: '12px', color: '#1565c0', fontWeight: 600 }}>
+              Filter: {selectedCanton.split('__')[1]}, {selectedCanton.split('__')[0]}
+            </span>
+          )}
+        </div>
+        {selectedCanton && (
+          <button 
+            onClick={() => setSelectedCanton(null)}
+            style={{
+              padding: '4px 10px',
+              border: '1px solid #d0d4da',
+              borderRadius: '6px',
+              background: 'white',
+              cursor: 'pointer',
+              fontSize: '11px'
+            }}
+          >
+            Clear Filter
+          </button>
+        )}
+      </div>
+
         updates.push({ id: r.id, geo: { canton: "Unknown", province: "", road: "" } });
       }
       if (cancelled) return;
